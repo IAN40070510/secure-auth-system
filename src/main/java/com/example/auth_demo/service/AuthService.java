@@ -7,34 +7,39 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-@Service
+@Service // **確保有 @Service 註解**
 public class AuthService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
+    // **使用建構子注入，這是最佳實踐**
     @Autowired
-    private PasswordEncoder passwordEncoder;
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
-    public void register(RegisterRequest registerRequest) {
-        // 安全性檢查：確認用戶名是否已被使用
+    public User register(RegisterRequest registerRequest) {
+        // 檢查用戶名是否已存在
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
-            throw new IllegalArgumentException("錯誤：該用戶名已被註冊！");
+            throw new IllegalArgumentException("Error: Username is already taken!");
         }
 
-        // 安全性檢查：確認 Email 是否已被使用
+        // 檢查電子郵件是否已存在
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            throw new IllegalArgumentException("錯誤：該 Email 已被註冊！");
+            throw new IllegalArgumentException("Error: Email is already in use!");
         }
 
-        // 建立新的使用者實體
-        User user = new User(
-            registerRequest.getUsername(),
-            registerRequest.getEmail(),
-            // 對密碼進行 BCrypt 哈希加密
-            passwordEncoder.encode(registerRequest.getPassword())
-        );
+        // 建立新的使用者物件
+        User user = new User();
+        user.setUsername(registerRequest.getUsername());
+        user.setEmail(registerRequest.getEmail());
+        // **使用注入的 passwordEncoder 來加密密碼**
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setMfaEnabled(false); // 預設禁用 MFA
 
-        userRepository.save(user);
+        // 儲存到資料庫並返回
+        return userRepository.save(user);
     }
 }

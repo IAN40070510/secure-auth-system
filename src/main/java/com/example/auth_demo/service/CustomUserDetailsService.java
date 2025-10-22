@@ -1,6 +1,4 @@
 package com.example.auth_demo.service;
-
-import com.example.auth_demo.model.User;
 import com.example.auth_demo.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

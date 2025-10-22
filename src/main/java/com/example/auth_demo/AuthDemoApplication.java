@@ -1,4 +1,4 @@
-package com.example.auth_demo;
+package com.example.auth_demo; // **确保 package 是正确的**
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class AuthDemoApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(AuthDemoApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(AuthDemoApplication.class, args);
+    }
 
 }

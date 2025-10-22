@@ -5,9 +5,10 @@ import lombok.Data;
 
 @Data
 public class LoginRequest {
-    @NotBlank(message = "用戶名不得為空")
+
+    @NotBlank
     private String username;
 
-    @NotBlank(message = "密碼不得為空")
+    @NotBlank
     private String password;
 }
