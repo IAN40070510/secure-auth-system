@@ -1,9 +1,10 @@
 // src/router/index.ts
 import { createRouter, createWebHistory } from 'vue-router';
 import Login from '@/views/Login.vue';
-import Register from '@/views/Register.vue';
+import Register from '@/views/Register.vue'; // 假設您有這個檔案
 import Dashboard from '@/views/Dashboard.vue';
-import { useAuthStore } from '@/stores/auth'; // 1. 引入我們的 Auth Store
+import MFAVerify from '@/views/MFAVerify.vue'; // <--- 新增引入
+import { useAuthStore } from '@/stores/auth';
 
 const routes = [
   { path: '/login', name: 'Login', component: Login },
@@ -12,7 +13,14 @@ const routes = [
     path: '/dashboard',
     name: 'Dashboard',
     component: Dashboard,
-    meta: { requiresAuth: true } // 我們將根據這個 meta 標記來判斷是否需要保護
+    meta: { requiresAuth: true }
+  },
+  // --- 新增: MFA 驗證頁面路由 ---
+  {
+    path: '/verify-mfa',
+    name: 'MFAVerify',
+    component: MFAVerify,
+    meta: { requiresMfaPending: true } // 自訂 meta: 需要 MFA 待定狀態
   },
   { path: '/', redirect: '/login' },
   { path: '/:pathMatch(.*)*', redirect: '/login' }
@@ -23,26 +31,48 @@ const router = createRouter({
   routes,
 });
 
-// 2. 建立全域路由守衛
+// 全域路由守衛
 router.beforeEach(async (to, _from, next) => {
-  // 在守衛內部獲取 store 實例
   const authStore = useAuthStore();
 
-  // **關鍵邏輯：處理頁面刷新**
-  // 如果 Pinia 中沒有登入狀態，就嘗試透過後端 session 恢復它
-  if (!authStore.isAuthenticated) {
+  // 頁面刷新處理：嘗試恢復登入狀態
+  if (!authStore.isAuthenticated && !authStore.isMfaPending) {
     await authStore.fetchUser();
   }
 
-  // 檢查目標路由是否需要認證
-  const requiresAuth = to.meta.requiresAuth;
-
-  // 如果路由需要認證，但用戶最終仍未登入，則導向登入頁
-  if (requiresAuth && !authStore.isAuthenticated) {
-    next('/login');
+  const isAuthenticated = authStore.isAuthenticated;
+  const isMfaPending = authStore.isMfaPending;
+  
+  // 權限檢查
+  if (to.meta.requiresAuth) {
+    // 1. 需要登入的頁面 (Dashboard)
+    if (isAuthenticated) {
+      next();
+    } else if (isMfaPending) {
+      // 密碼對了但還沒驗 MFA -> 去驗證頁
+      next('/verify-mfa');
+    } else {
+      next('/login');
+    }
+  } else if (to.meta.requiresMfaPending) {
+    // 2. MFA 驗證頁面
+    if (isMfaPending) {
+      next();
+    } else if (isAuthenticated) {
+      // 已經登入了，不需要驗證 -> 去首頁
+      next('/dashboard');
+    } else {
+      // 沒登入 -> 去登入頁
+      next('/login');
+    }
   } else {
-    // 否則，允許訪問
-    next();
+    // 3. 公開頁面 (Login/Register)
+    // 如果已經登入，訪問 login 自動跳轉 dashboard
+    if (to.path === '/login' && isAuthenticated) {
+        next('/dashboard');
+    } else {
+        next();
+    }
   }
 });
 

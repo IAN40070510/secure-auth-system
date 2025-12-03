@@ -178,4 +178,14 @@ button:disabled {
 .fade-leave-to {
   opacity: 0;
 }
+
+/* src/assets/main.css */
+
+/* 👇 強制覆蓋所有限制，找回滾動條 👇 */
+html, body, #app {
+  height: auto !important;      /* 取消固定高度 */
+  min-height: 1000vh !important; /* 確保至少有一頁高 */
+  overflow-y: auto !important;  /* 強制開啟垂直滾動 */
+  overflow-x: hidden;           /* 隱藏水平滾動 */
+}
 </style>
