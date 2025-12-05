@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # 1. MySQL 資料庫
+  mysql:
+    image: mysql:8.0
+    container_name: auth-mysql
+    environment:
+      # root 密碼 (僅供管理員手動維護使用)
+      MYSQL_ROOT_PASSWORD: rootpassword 
+      
+      # 👇 新增這三行：Docker 啟動時會自動建立這個使用者並授權給 auth_demo 👇
+      MYSQL_DATABASE: auth_demo
+      MYSQL_USER: auth_user           # 專用帳號
+      MYSQL_PASSWORD: StrongPass123!  # 專用密碼 (請自行修改更強的密碼)
+      
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - auth-network
+
+  # 2. Spring Boot 後端
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: auth-backend
+    ports:
+      - "8080:8080"
+    environment:
+      # 覆蓋 application.properties 中的設定
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_demo?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      
+      # 👇 修改這裡：改用剛剛設定的專用帳號連線 👇
+      SPRING_DATASOURCE_USERNAME: auth_user
+      SPRING_DATASOURCE_PASSWORD: StrongPass123!
+    depends_on:
+      - mysql
+    networks:
+      - auth-network
+
+  # 3. Vue 前端
+  frontend:
+    build:
+      context: ./frontend # ⚠️ 請確保您的前端程式碼確實放在根目錄下的 frontend 資料夾
+      dockerfile: Dockerfile 
+    container_name: auth-frontend
+    ports:
+      - "5173:80" # 將容器的 80 port 對應到本機的 5173
+    depends_on:
+      - backend
+    networks:
+      - auth-network
+
+volumes:
+  mysql_data:
+
+networks:
+  auth-network:
+    driver: bridge
